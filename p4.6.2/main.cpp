@@ -30,7 +30,8 @@ GLuint renderingProgram;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
 
-GLuint mvLoc, projLoc;
+// GLuint mvLoc, projLoc;
+GLuint mLoc, vLoc, projLoc, tfLoc;
 int width, height;
 float aspect;
 glm::mat4 pMat, vMat, mMat, tMat, rMat, mvMat;
@@ -62,7 +63,7 @@ void init(GLFWwindow *window){
     
     cameraX = 0.0f;
     cameraY = 0.0f;
-    cameraZ = 8.0f;
+    cameraZ = 30.0f;
 
     cubeLocX = 0.0f;
     cubeLocY = -2.0f;
@@ -76,25 +77,33 @@ void display(GLFWwindow *window, double currentTime) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(renderingProgram);
-    mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
+    // mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
+    mLoc = glGetUniformLocation(renderingProgram, "m_matrix");
+    vLoc = glGetUniformLocation(renderingProgram, "v_matrix");
+    tfLoc = glGetUniformLocation(renderingProgram, "tf");
     
     projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
     glfwGetFramebufferSize(window, &width, &height);
     // cout << "width: " << width << ", height: " << height << endl;
     aspect = (float)width / (float)height;
     // cout << "apsect: " << aspect << endl;
-    tMat = glm::translate(glm::mat4(1.0f), glm::vec3(sin(0.35f * currentTime) * 2.0f, cos(0.52f * currentTime) * 2.0f, sin(0.7f * currentTime) * 2.0f));
-    rMat = glm::rotate(glm::mat4(1.0f), 1.75f * (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f));
-    rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
-    rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(0.0f, 0.0f, 1.0f));
     pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
     vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
-    // mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
-    mMat = tMat * rMat;
-    mvMat = vMat * mMat;
+    
+    // tMat = glm::translate(glm::mat4(1.0f), glm::vec3(sin(0.35f * (float)currentTime) * 8.0f, cos(0.52f * (float)currentTime) * 8.0f, sin(0.7f * (float)currentTime) * 8.0f));
+    // rMat = glm::rotate(glm::mat4(1.0f), 1.75f * (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f));
+    // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
+    // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(0.0f, 0.0f, 1.0f));
+    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
+    // mMat = tMat * rMat;
+    // mvMat = vMat * mMat;
 
-    glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+    // glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+    glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
+    glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+    float timeFactor = ((float)currentTime);
+    glUniform1f(tfLoc, (float)timeFactor);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -102,7 +111,7 @@ void display(GLFWwindow *window, double currentTime) {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 24);
 }
 
 int main(int, char**) {

@@ -25,12 +25,14 @@ using namespace std;
 
 float cameraX, cameraY, cameraZ;
 float cubeLocX, cubeLocY, cubeLocZ;
+float pyrLocX, pyrLocY, pyrLocZ;
 
 GLuint renderingProgram;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
 
 GLuint mvLoc, projLoc;
+// GLuint mLoc, vLoc, projLoc, tfLoc;
 int width, height;
 float aspect;
 glm::mat4 pMat, vMat, mMat, tMat, rMat, mvMat;
@@ -50,11 +52,24 @@ void setupVerties(void) {
       -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
       1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f
    };
+   float pyramidPositions[54] = {
+        -1.0f, -1.0f, 1.0, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 
+        1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 
+        -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f
+   };
    glGenVertexArrays(1, vao);
    glBindVertexArray(vao[0]);
    glGenBuffers(numVBOs, vbo);
+
    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
+
+   glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+   glBufferData(GL_ARRAY_BUFFER, sizeof(pyramidPositions), pyramidPositions, GL_STATIC_DRAW);
+
 }
 
 void init(GLFWwindow *window){
@@ -68,6 +83,10 @@ void init(GLFWwindow *window){
     cubeLocY = -2.0f;
     cubeLocZ = 0.0f;
 
+    pyrLocX = 3.0f;
+    pyrLocY = 2.0f;
+    pyrLocZ = -1.0f;
+
     setupVerties();
 }
 
@@ -77,26 +96,46 @@ void display(GLFWwindow *window, double currentTime) {
 
     glUseProgram(renderingProgram);
     mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
+    // mLoc = glGetUniformLocation(renderingProgram, "m_matrix");
+    // vLoc = glGetUniformLocation(renderingProgram, "v_matrix");
+    // tfLoc = glGetUniformLocation(renderingProgram, "tf");
     
     projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
     glfwGetFramebufferSize(window, &width, &height);
     // cout << "width: " << width << ", height: " << height << endl;
     aspect = (float)width / (float)height;
     // cout << "apsect: " << aspect << endl;
-    tMat = glm::translate(glm::mat4(1.0f), glm::vec3(sin(0.35f * currentTime) * 2.0f, cos(0.52f * currentTime) * 2.0f, sin(0.7f * currentTime) * 2.0f));
-    rMat = glm::rotate(glm::mat4(1.0f), 1.75f * (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f));
-    rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
-    rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(0.0f, 0.0f, 1.0f));
     pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
     vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
-    // mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
-    mMat = tMat * rMat;
+    
+    // tMat = glm::translate(glm::mat4(1.0f), glm::vec3(sin(0.35f * (float)currentTime) * 8.0f, cos(0.52f * (float)currentTime) * 8.0f, sin(0.7f * (float)currentTime) * 8.0f));
+    // rMat = glm::rotate(glm::mat4(1.0f), 1.75f * (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f));
+    // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
+    // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(0.0f, 0.0f, 1.0f));
+    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
+    // mMat = tMat * rMat;
     mvMat = vMat * mMat;
 
     glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+    // glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
+    // glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+    float timeFactor = ((float)currentTime);
+    // glUniform1f(tfLoc, (float)timeFactor);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(pyrLocX, pyrLocY, pyrLocZ));
+    mvMat = vMat * mMat;
+    glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
 
@@ -112,7 +151,7 @@ int main(int, char**) {
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    GLFWwindow *window = glfwCreateWindow(800, 800, "P2.2", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(400, 400, "P2.2", NULL, NULL);
     glfwMakeContextCurrent(window);
     if(glewInit() != GLEW_OK) { 
         cout << "glewInit() failed" << endl;
