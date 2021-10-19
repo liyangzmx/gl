@@ -35,6 +35,7 @@ GLuint mLoc, vLoc, projLoc, tfLoc;
 int width, height;
 float aspect;
 glm::mat4 pMat, vMat, mMat, tMat, rMat, mvMat;
+float scale = 1.0;
 
 void setupVerties(void) {
     float vertexPositions[108] = {
@@ -95,6 +96,7 @@ void display(GLFWwindow *window, double currentTime) {
     // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
     // rMat = glm::rotate(rMat, 1.75f * (float)currentTime, glm::vec3(0.0f, 0.0f, 1.0f));
     mMat = glm::translate(glm::mat4(1.0f), glm::vec3(cubeLocX, cubeLocY, cubeLocZ));
+    mMat = glm::scale(mMat, glm::vec3(scale, scale, scale));
     // mMat = tMat * rMat;
     // mvMat = vMat * mMat;
 
@@ -102,7 +104,7 @@ void display(GLFWwindow *window, double currentTime) {
     glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
     glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-    float timeFactor = ((float)currentTime);
+    float timeFactor = ((float)currentTime / 2);
     glUniform1f(tfLoc, (float)timeFactor);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -111,7 +113,18 @@ void display(GLFWwindow *window, double currentTime) {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 100000);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 10000);
+}
+
+void window_reshape_callback(GLFWwindow *window, int newWidth, int newHeight) {
+    aspect = (float)newWidth / (float)newHeight;
+    glViewport(0, 0, newWidth, newHeight);
+    pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
+}
+
+void window_scroll_callback(GLFWwindow *window, double x, double y) {
+    cout << "x: " << x << ", y: " << y << endl;
+    scale += (0.1f * y);
 }
 
 int main(int, char**) {
@@ -128,6 +141,8 @@ int main(int, char**) {
         exit(EXIT_FAILURE); 
     }
     glfwSwapInterval(1);
+    glfwSetWindowSizeCallback(window, window_reshape_callback);
+    glfwSetScrollCallback(window, window_scroll_callback);
 
     init(window);
     while(!glfwWindowShouldClose(window)) {
