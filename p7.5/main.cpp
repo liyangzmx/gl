@@ -22,16 +22,14 @@
 #include "Torus.h"
 
 Sphere mySphere(48);
-Torus myTorus(0.5f, 0.2f, 48);
+Torus myTorus(1.0f, 0.5f, 48);
 
 using namespace std;
 
 #define numVAOs 1
-#define numVBOs 3
+#define numVBOs 4
 
 float cameraX, cameraY, cameraZ;
-float cubeLocX, cubeLocY, cubeLocZ;
-float pyrLocX, pyrLocY, pyrLocZ;
 
 GLuint renderingProgram;
 GLuint vao[numVAOs];
@@ -47,6 +45,7 @@ glm::mat4 pMat, vMat, mMat, tMat, rMat, mvMat, invTrMat;
 float scale = 1.0;
 glm::vec3 currentLightPos, lightPosV;
 float lightPos[3];
+
 glm::vec3 initialLightLoc = glm::vec3(5.0f, 2.0f, 2.0f);
 
 float* matAmb = Utils::goldAmbient();
@@ -113,9 +112,9 @@ void setupVerties(void) {
         nvalues.push_back((norm[ind[i]]).z);
     }
 
-    glGenVertexArrays(1, vao);
+    glGenVertexArrays(numVAOs, vao);
     glBindVertexArray(vao[0]);
-    glGenBuffers(3, vbo);
+    glGenBuffers(numVBOs, vbo);
 
     // 把顶点放入缓冲区 #0
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -128,6 +127,10 @@ void setupVerties(void) {
     // 把法向量放入缓冲区 #2
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ARRAY_BUFFER, nvalues.size()*4, &nvalues[0], GL_STATIC_DRAW);
+
+    // 把索引放入缓冲区 #3
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind.size()*4, &ind[0], GL_STATIC_DRAW);
 }
 
 void init(GLFWwindow *window){
@@ -135,15 +138,7 @@ void init(GLFWwindow *window){
     
     cameraX = 0.0f;
     cameraY = 0.0f;
-    cameraZ = 4.0f;
-
-    cubeLocX = 0.0f;
-    cubeLocY = -4.0f;
-    cubeLocZ = 0.0f;
-
-    pyrLocX = 3.0f;
-    pyrLocY = 2.0f;
-    pyrLocZ = -1.0f;
+    cameraZ = 8.0f;
 
     setupVerties();
 
@@ -181,53 +176,56 @@ void installLights(glm::mat4 vMatrix) {
    glProgramUniform1f(renderingProgram, mShiLoc, matShi);
 }
 
+float toRadians(float degrees) { return (degrees * 2.0f * 3.14159f) / 360.0f; }
+
 void display(GLFWwindow *window, double currentTime) {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(renderingProgram);
-    mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
-    nLoc = glGetUniformLocation(renderingProgram, "norm_matrix"); 
+    // mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
+    mLoc = glGetUniformLocation(renderingProgram, "m_matrix");
+    vLoc = glGetUniformLocation(renderingProgram, "v_matrix");
+    tfLoc = glGetUniformLocation(renderingProgram, "tf");
+    
     projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
-
     glfwGetFramebufferSize(window, &width, &height);
     // cout << "width: " << width << ", height: " << height << endl;
     aspect = (float)width / (float)height;
     // cout << "apsect: " << aspect << endl;
     pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
     vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
-    vMat = glm::scale(vMat, glm::vec3(scale, scale, scale));
-    
     currentLightPos = glm::vec3(initialLightLoc.x, initialLightLoc.y, initialLightLoc.z);
-    installLights(vMat);
 
-    // mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
-    // mMat *= glm::rotate(glm::mat4(1.0f), 1.75f * (float)currentTime, glm::vec3(1.0f, 0.0f, 0.0f));
-    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)); 
     // 旋转环面以便更容易看到
-    mMat *= glm::rotate(mMat, mySphere.toRadians(35.0f), glm::vec3(1.0f, 0.0f, 0.0f)); 
+    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)); 
+    mMat = glm::scale(mMat, glm::vec3(scale, scale, scale));
+
+    installLights(vMat);
     mvMat = vMat * mMat;
 
     invTrMat = glm::transpose(glm::inverse(mvMat));
 
-    glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+    glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(mMat));
+    glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
+    // glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
     glUniformMatrix4fv(nLoc, 1, GL_FALSE, glm::value_ptr(invTrMat));
     
     float timeFactor = ((float)currentTime / 10);
-    // glUniform1f(tfLoc, (float)timeFactor);
+    glUniform1f(tfLoc, (float)timeFactor);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
 
-    // glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    // glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]); 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0); 
-    glEnableVertexAttribArray(1); 
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0); 
+    glEnableVertexAttribArray(2); 
 
     glActiveTexture(GL_TEXTURE0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -243,12 +241,14 @@ void display(GLFWwindow *window, double currentTime) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
     glBindTexture(GL_TEXTURE_2D, brickTexture);
 
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    // glDrawArrays(GL_TRIANGLES, 0, 18);
-    // glDrawArraysInstanced(GL_TRIANGLES, 0, 18, 1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+    glDrawElements(GL_TRIANGLES, myTorus.getNumIndices(), GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_TRIANGLES, 0, mySphere.getNumIndices());
-    glDrawElements(GL_TRIANGLES, mySphere.getNumIndices(), GL_UNSIGNED_INT, 0);
 }
 
 void window_reshape_callback(GLFWwindow *window, int newWidth, int newHeight) {

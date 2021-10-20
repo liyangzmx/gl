@@ -120,15 +120,15 @@ void init(GLFWwindow *window){
     
     cameraX = 0.0f;
     cameraY = 0.0f;
-    cameraZ = 4.0f;
+    cameraZ = 2.0f;
 
     cubeLocX = 0.0f;
     cubeLocY = -4.0f;
     cubeLocZ = 0.0f;
 
-    pyrLocX = 3.0f;
-    pyrLocY = 2.0f;
-    pyrLocZ = -1.0f;
+    pyrLocX = 0;
+    pyrLocY = 0;
+    pyrLocZ = 0;
 
     setupVerties();
 
@@ -154,7 +154,7 @@ void display(GLFWwindow *window, double currentTime) {
     pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
     vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
     vMat = mMat = glm::scale(vMat, glm::vec3(scale, scale, scale));
-    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -1.0f, -1.0f));
     mvStack.push(mMat);
     // mvStack.push(mvStack.top());
 
